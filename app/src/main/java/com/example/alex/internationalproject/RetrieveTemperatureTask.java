@@ -2,6 +2,7 @@ package com.example.alex.internationalproject;
 
 import android.content.Context;
 import android.os.AsyncTask;
+import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -14,6 +15,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Date;
 
 /**
  * Created by Alex on 15-3-2017.
@@ -37,12 +39,7 @@ public class RetrieveTemperatureTask extends AsyncTask<URL, Void, JSONArray> {
     protected JSONArray doInBackground(URL... urls) {
         JSONArray result = null;
         try {
-            result = getJSONObjectFromURL(urls[0]);
-//            for(int i = 0; i <result.length(); i++) {
-//                JSONObject json = result.getJSONObject(i);
-//
-//                Log.d("TAG", json.getString("val"));
-//            }
+            result = getSingleTemperature(urls[0]);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (JSONException e) {
@@ -57,7 +54,7 @@ public class RetrieveTemperatureTask extends AsyncTask<URL, Void, JSONArray> {
         delegate.processFinish(json);
     }
 
-    private JSONArray getJSONObjectFromURL(URL url) throws IOException, JSONException {
+    private JSONArray getSingleTemperature(URL url) throws IOException, JSONException {
         HttpURLConnection urlConnection = null;
         InputStream iStream;
 
@@ -74,7 +71,7 @@ public class RetrieveTemperatureTask extends AsyncTask<URL, Void, JSONArray> {
         urlConnection.setDoInput(true);
 
         JSONObject jsonParams = new JSONObject();
-        jsonParams.put("ID", "Taart");
+        jsonParams.put("name", "Taart");
 
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(urlConnection.getOutputStream()));
         writer.write(jsonParams.toString());
@@ -95,6 +92,7 @@ public class RetrieveTemperatureTask extends AsyncTask<URL, Void, JSONArray> {
         String line;
         while ((line = br.readLine()) != null) {
             sb.append(line + "\n");
+            Log.d("TAG", "getJSONObjectFromURL: " + line);
         }
         br.close();
 
@@ -102,5 +100,37 @@ public class RetrieveTemperatureTask extends AsyncTask<URL, Void, JSONArray> {
 
         JSONArray ja = new JSONArray(jsonString);
         return ja;
+    }
+
+    private void getTemperatureInRange(URL url, Date begin, Date end) {
+        HttpURLConnection urlConnection = null;
+        try {
+            urlConnection = (HttpURLConnection) url.openConnection();
+
+            InputStream in = urlConnection.getInputStream();
+
+            InputStreamReader isw = new InputStreamReader(in);
+
+            int data = isw.read();
+            while(data != -1) {
+                char current = (char) data;
+                data = isw.read();
+                BufferedReader br = new BufferedReader(isw, 8);
+
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) {
+                    sb.append(line + "\n");
+                    Log.d("TAG", "getJSONObjectFromURL: " + line);
+                }
+                br.close();
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+        } finally {
+            if(urlConnection != null) {
+                urlConnection.disconnect();
+            }
+        }
     }
 }

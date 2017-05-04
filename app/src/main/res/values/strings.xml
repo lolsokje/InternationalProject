@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">InternationalProject</string>
+    <string name="network_error_title">"No network connection"</string>
+    <string name="network_error_message">"This app requires an active network connection to function."</string>
+    <string name="server_error_title">"Error retreiving data"</string>
+    <string name="server_error_message">"There's been an error retreiving data from the server."</string>
+    <string name="empty_field_error">"One or both fields are empty. Please enter both a name and password"</string>
 </resources>
