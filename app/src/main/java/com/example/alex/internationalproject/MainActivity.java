@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -38,6 +39,8 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
     SharedPreferences sharedPref;
     SharedPreferences.Editor editor;
 
+    final String TOKEN = "TOKEN";
+
     private URL url;
 
     @Override
@@ -45,11 +48,11 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        sharedPref = this.getSharedPreferences("TOKEN", MODE_PRIVATE);
+        sharedPref = this.getSharedPreferences(TOKEN, MODE_PRIVATE);
         editor = sharedPref.edit();
 
-        if(sharedPref.contains("token")) {
-            goToNewActivity();
+        if(sharedPref.contains("tokenString")) {
+            goToNewActivity(sharedPref.getString(TOKEN, "tokenString"));
         } else {
             signUpLayout = (RelativeLayout) findViewById(R.id.signUpLayout);
             signUpNameEditText = (EditText) findViewById(R.id.signUpNameEditText);
@@ -147,9 +150,6 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
     }
 
     @Override
-    public void processFinish(JSONArray jsonArray) { }
-
-    @Override
     public void processFinish(String result) {
         String resultString;
         String messageString = null;
@@ -168,11 +168,11 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
                 showSignInLayout();
             } else if(resultString == "true" && token != null) {
                 if(rememberMe) {
-                    editor.putString("token", token);
-                    editor.commit();
-                    goToNewActivity();
+                    editor.putString("tokenString", token);
+                    editor.apply();
+                    goToNewActivity(token);
                 } else {
-                    goToNewActivity();
+                    goToNewActivity(token);
                 }
             } else
             {
@@ -185,10 +185,15 @@ public class MainActivity extends AppCompatActivity implements AsyncResponse {
         }
     }
 
-    private void goToNewActivity() {
+    private void goToNewActivity(String token) {
         Intent intent = new Intent(this, SensorActivity.class);
-        String authenticated = "true";
-        intent.putExtra("AUTHENTICATED", authenticated);
+        intent.putExtra(TOKEN, token);
         startActivity(intent);
     }
+
+    @Override
+    public void processFinish(JSONArray json) {}
+
+    @Override
+    public void processFinish(JSONObject jsonArray) { }
 }

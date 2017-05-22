@@ -15,19 +15,24 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Date;
+
+import static android.content.ContentValues.TAG;
 
 /**
  * Created by Alex on 15-3-2017.
  */
 
-public class RetrieveTemperatureTask extends AsyncTask<URL, Void, JSONArray> {
+public class RetrieveTemperatureTask extends AsyncTask<URL, Void, JSONObject> {
     private Context mContext;
     private String mUrl;
+    private String mToken;
     public AsyncResponse delegate = null;
 
-    public RetrieveTemperatureTask(Context context) {
+    public RetrieveTemperatureTask(Context context, String token) {
         mContext = context;
+        mToken = token;
     }
 
     @Override
@@ -36,8 +41,8 @@ public class RetrieveTemperatureTask extends AsyncTask<URL, Void, JSONArray> {
     }
 
     @Override
-    protected JSONArray doInBackground(URL... urls) {
-        JSONArray result = null;
+    protected JSONObject doInBackground(URL... urls) {
+        JSONObject result = null;
         try {
             result = getSingleTemperature(urls[0]);
         } catch (IOException e) {
@@ -50,56 +55,103 @@ public class RetrieveTemperatureTask extends AsyncTask<URL, Void, JSONArray> {
     }
 
     @Override
-    protected void onPostExecute(JSONArray json) {
+    protected void onPostExecute(JSONObject json) {
         delegate.processFinish(json);
     }
 
-    private JSONArray getSingleTemperature(URL url) throws IOException, JSONException {
+    private JSONObject getSingleTemperature(URL url) throws IOException, JSONException {
+//        HttpURLConnection urlConnection = null;
+//        InputStream iStream;
+//
+//        urlConnection = (HttpURLConnection) url.openConnection();
+//
+//        urlConnection.setRequestMethod("POST");
+//        urlConnection.setRequestProperty("Content-type", "application/json");
+//        urlConnection.setRequestProperty("charset", "UTF-8");
+//
+//        urlConnection.setReadTimeout(10000);
+//        urlConnection.setConnectTimeout(15000);
+//
+//        urlConnection.setDoOutput(true);
+//        urlConnection.setDoInput(true);
+//
+//        JSONObject jsonParams = new JSONObject();
+//        jsonParams.put("name", "Taart");
+//
+//        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(urlConnection.getOutputStream()));
+//        writer.write(jsonParams.toString());
+//        writer.flush();
+//        writer.close();
+//
+//        if (urlConnection.getResponseCode() == HttpURLConnection.HTTP_OK) {
+//            iStream = urlConnection.getInputStream();
+//        } else {
+//            iStream = urlConnection.getErrorStream();
+//        }
+//
+//        BufferedReader br = new BufferedReader(new InputStreamReader(iStream, "UTF-8"), 8);
+//
+//        String jsonString;
+//
+//        StringBuilder sb = new StringBuilder();
+//        String line;
+//        while ((line = br.readLine()) != null) {
+//            sb.append(line + "\n");
+//            Log.d("TAG", "getJSONObjectFromURL: " + line);
+//        }
+//        br.close();
+//
+//        jsonString = sb.toString();
+//
+//        JSONArray ja = new JSONArray(jsonString);
+//        return ja;
         HttpURLConnection urlConnection = null;
-        InputStream iStream;
+        BufferedReader reader = null;
 
-        urlConnection = (HttpURLConnection) url.openConnection();
+        String forecastJsonString = null;
 
-        urlConnection.setRequestMethod("POST");
-        urlConnection.setRequestProperty("Content-type", "application/json");
-        urlConnection.setRequestProperty("charset", "UTF-8");
+        try {
+            urlConnection = (HttpURLConnection) url.openConnection();
+            urlConnection.setRequestMethod("GET");
+            urlConnection.setRequestProperty("Content-Type", "application/json");
+            urlConnection.setRequestProperty("charset", "UTF-8");
+            urlConnection.setRequestProperty("Authorization", mToken);
+            urlConnection.connect();
 
-        urlConnection.setReadTimeout(10000);
-        urlConnection.setConnectTimeout(15000);
+            InputStream inputStream = urlConnection.getInputStream();
+            StringBuffer buffer = new StringBuffer();
+            if(inputStream == null) {
+                return null;
+            }
+            reader = new BufferedReader(new InputStreamReader(inputStream));
 
-        urlConnection.setDoOutput(true);
-        urlConnection.setDoInput(true);
+            String line;
+            while((line = reader.readLine()) != null) {
+                buffer.append(line + "\n");
+            }
 
-        JSONObject jsonParams = new JSONObject();
-        jsonParams.put("name", "Taart");
+            if(buffer.length() == 0) {
+                return null;
+            }
 
-        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(urlConnection.getOutputStream()));
-        writer.write(jsonParams.toString());
-        writer.flush();
-        writer.close();
-
-        if (urlConnection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-            iStream = urlConnection.getInputStream();
-        } else {
-            iStream = urlConnection.getErrorStream();
+            forecastJsonString = buffer.toString();
+        } catch(Exception e) {
+            e.printStackTrace();
+        } finally {
+            if(urlConnection != null) {
+                urlConnection.disconnect();
+            }
+            if(reader != null) {
+                try {
+                    reader.close();
+                } catch (final IOException e) {
+                    Log.e("PlaceHolderFragment", "Error closing stream", e);
+                }
+            }
         }
 
-        BufferedReader br = new BufferedReader(new InputStreamReader(iStream, "UTF-8"), 8);
-
-        String jsonString;
-
-        StringBuilder sb = new StringBuilder();
-        String line;
-        while ((line = br.readLine()) != null) {
-            sb.append(line + "\n");
-            Log.d("TAG", "getJSONObjectFromURL: " + line);
-        }
-        br.close();
-
-        jsonString = sb.toString();
-
-        JSONArray ja = new JSONArray(jsonString);
-        return ja;
+        JSONObject jo = new JSONObject(forecastJsonString);
+        return jo;
     }
 
     private void getTemperatureInRange(URL url, Date begin, Date end) {

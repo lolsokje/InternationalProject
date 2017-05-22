@@ -14,7 +14,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:id="@+id/signUpLayout"
-        android:visibility="visible">
+        android:visibility="invisible">
     <TextView
         android:text="Name:"
         android:layout_width="wrap_content"
@@ -79,7 +79,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:id="@+id/signInLayout"
-        android:visibility="invisible">
+        android:visibility="visible">
 
         <TextView
             android:text="Name:"

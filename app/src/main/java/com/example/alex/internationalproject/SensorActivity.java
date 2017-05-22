@@ -1,16 +1,25 @@
 package com.example.alex.internationalproject;
 
+import android.annotation.TargetApi;
 import android.app.DatePickerDialog;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
+import android.support.annotation.IntegerRes;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.NotificationCompat;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.DatePicker;
@@ -25,9 +34,15 @@ import org.json.JSONObject;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Calendar;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class SensorActivity extends AppCompatActivity implements AsyncResponse, DatePickerDialog.OnDateSetListener {
     boolean networkAvailable;
+
+    Context context = this;
 
     int temperature;
 
@@ -49,23 +64,53 @@ public class SensorActivity extends AppCompatActivity implements AsyncResponse, 
     int startYear, startMonth, startDay;
     int fromYear, fromMonth, fromDay, toYear, toMonth, toDay;
 
+    int BACKGROUND_RED;
+    int BACKGROUND_BLUE;
+    int BACKGROUND_GREEN;
+
+    Drawable BUTTON_RED;
+    Drawable BUTTON_BLUE;
+    Drawable BUTTON_GREEN;
+
     DatePickerDialog.OnDateSetListener from_dateListener, to_dateListener;
 
     SharedPreferences sharedPref;
     SharedPreferences.Editor editor;
+    final String TOKEN = "TOKEN";
 
+    final int DELAY = 0;
+    final int PERIOD = 5000;
+    Timer timer;
+
+    String token;
+
+    @TargetApi(16)
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)  {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sensor);
 
-        sharedPref = this.getSharedPreferences("TOKEN", MODE_PRIVATE);
+        sharedPref = this.getSharedPreferences(TOKEN, MODE_PRIVATE);
         editor = sharedPref.edit();
 
-        Intent intent = getIntent();
-        String messageExtra = intent.getStringExtra("AUTHENTICATED");
+        timer = new Timer();
 
-        if(sharedPref.contains("token") || messageExtra.equals("true")) {
+        BACKGROUND_RED = ContextCompat.getColor(context, R.color.red);
+        BACKGROUND_BLUE = ContextCompat.getColor(context, R.color.blue);
+        BACKGROUND_GREEN = ContextCompat.getColor(context, R.color.green);
+
+        BUTTON_RED = ContextCompat.getDrawable(context, R.drawable.button_border_red);
+        BUTTON_BLUE = ContextCompat.getDrawable(context, R.drawable.button_border_blue);
+        BUTTON_GREEN = ContextCompat.getDrawable(context, R.drawable.button_border_green);
+
+        Intent intent = getIntent();
+
+        if(sharedPref.contains("tokenString") || intent.hasExtra(TOKEN)) {
+            if(sharedPref.contains("tokenString")) {
+                token = sharedPref.getString("tokenString", "tokenString");
+            } else if(intent.hasExtra(TOKEN)) {
+                token = intent.getStringExtra(TOKEN);
+            }
             Calendar calendar = Calendar.getInstance();
             startYear = calendar.get(Calendar.YEAR);
             startMonth = calendar.get(Calendar.MONTH);
@@ -75,10 +120,12 @@ public class SensorActivity extends AppCompatActivity implements AsyncResponse, 
             toDate = "";
 
             logOutButton = (Button) findViewById(R.id.logOutButton);
+            logOutButton.setBackground(BUTTON_GREEN);
 
             fromDateTextView = (TextView) findViewById(R.id.beginDateTextView);
             toDateTextView = (TextView) findViewById(R.id.endDateTextView);
             getAverageTempButton = (Button) findViewById(R.id.averageTempButton);
+            getAverageTempButton.setBackground(BUTTON_GREEN);
 
             networkAvailable = isNetworkAvailable();
 
@@ -86,14 +133,10 @@ public class SensorActivity extends AppCompatActivity implements AsyncResponse, 
 
             if (networkAvailable) {
                 try {
-                    temperatureUrl = new URL("http://141.135.5.117:3500/user/temps");
+                    temperatureUrl = new URL("http://141.135.5.117:3500/temp/fever");
                 } catch (MalformedURLException e) {
                     e.printStackTrace();
                 }
-
-                RetrieveTemperatureTask retrieveTemperatureTask = new RetrieveTemperatureTask(SensorActivity.this);
-                retrieveTemperatureTask.delegate = this;
-                retrieveTemperatureTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, temperatureUrl);
 
                 relLayout = (RelativeLayout) findViewById(R.id.activity_sensor);
                 temperatureView = (TextView) findViewById(R.id.temperatureView);
@@ -101,12 +144,25 @@ public class SensorActivity extends AppCompatActivity implements AsyncResponse, 
                 temperature = 0;
                 temperatureView.setText(String.valueOf(temperature) + "°C");
                 checkTemperature();
+
+                timer.scheduleAtFixedRate(new MyTimerTask(token) {
+                    @Override
+                    public void run() {
+                        getLastTemperature(token);
+                    }
+                }, DELAY, PERIOD);
             } else {
                 buildAlertDialog(getResources().getString(R.string.network_error_title), getResources().getString(R.string.network_error_message));
             }
         } else {
             goToSignUpActivity();
         }
+    }
+
+    private void getLastTemperature(String token) {
+        RetrieveTemperatureTask retrieveTemperatureTask = new RetrieveTemperatureTask(SensorActivity.this, token);
+        retrieveTemperatureTask.delegate = this;
+        retrieveTemperatureTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, temperatureUrl);
     }
 
     private void createDialog(int id) {
@@ -120,22 +176,59 @@ public class SensorActivity extends AppCompatActivity implements AsyncResponse, 
         }
     }
 
+    @TargetApi(16)
     private void checkTemperature() {
         if(temperature < 38 == temperature > 36) {
-            relLayout.setBackgroundColor(0xFF00CC00);
+            relLayout.setBackgroundColor(BACKGROUND_GREEN);
+            getAverageTempButton.setBackground(BUTTON_GREEN);
+            logOutButton.setBackground(BUTTON_GREEN);
         } else if(temperature >= 38) {
-            relLayout.setBackgroundColor(0xFFCC0000);
+            relLayout.setBackgroundColor(BACKGROUND_RED);
+            getAverageTempButton.setBackground(BUTTON_RED);
+            logOutButton.setBackground(BUTTON_RED);
+            NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this);
+            mBuilder.setSmallIcon(R.mipmap.ic_launcher);
+            mBuilder.setContentTitle("High temperature");
+            mBuilder.setContentText("Your baby's temperature seems high. Please keep an eye on it");
+
+            Intent notifIntent = new Intent(this, SensorActivity.class);
+            TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+            stackBuilder.addParentStack(SensorActivity.class);
+            stackBuilder.addNextIntent(notifIntent);
+            PendingIntent notifPendingIntent =
+                    stackBuilder.getPendingIntent(
+                            0,
+                            PendingIntent.FLAG_UPDATE_CURRENT
+                    );
+            mBuilder.setContentIntent(notifPendingIntent);
+            NotificationManager mNotificationManager =
+                    (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            mNotificationManager.notify(0, mBuilder.build());
+
         } else if(temperature <= 36) {
-            relLayout.setBackgroundColor(0xFF0066FF);
+            relLayout.setBackgroundColor(BACKGROUND_BLUE);
+            getAverageTempButton.setBackground(BUTTON_BLUE);
+            logOutButton.setBackground(BUTTON_BLUE);
         }
     }
 
     @Override
-    public void processFinish(JSONArray json) {
+    public void processFinish(JSONObject json) {
         try {
             if(json != null) {
-                JSONObject jo = json.getJSONObject(json.length() - 1);
-                String temp = jo.getString("val");
+//                String temp;
+//                Iterator<String> keys = json.keys();
+//                while(keys.hasNext()) {
+//                    String key = keys.next();
+//                    String value = json.getString(key);
+//                    JSONObject jObject = new JSONObject(value);
+//                    temp = jObject.getString("value");
+//                    temperature = Integer.parseInt(temp);
+//                    temperatureView.setText(temp + "°C");
+//                    checkTemperature();
+//                }
+                String temp;
+                temp = json.getString("value");
                 temperature = Integer.parseInt(temp);
                 temperatureView.setText(temp + "°C");
                 checkTemperature();
@@ -194,9 +287,11 @@ public class SensorActivity extends AppCompatActivity implements AsyncResponse, 
         return strings;
     }
 
-    private void getAverageTemperature() {
+    private void getTemperatureInRange() {
         if(fromDate == "" || toDate == "") {
-            Toast.makeText(this, "No dates selected", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(this, "No dates selected", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(this, TemperatureGraph.class);
+            startActivity(intent);
         } else {
             try {
                 averageTempUrl = new URL("http://141.135.5.117:3500/temp/test");
@@ -215,8 +310,8 @@ public class SensorActivity extends AppCompatActivity implements AsyncResponse, 
     }
 
     private void logOut() {
-        editor.remove("token");
-        editor.commit();
+        editor.clear();
+        editor.apply();
         goToSignUpActivity();
     }
 
@@ -238,7 +333,7 @@ public class SensorActivity extends AppCompatActivity implements AsyncResponse, 
         getAverageTempButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                getAverageTemperature();
+                getTemperatureInRange();
             }
         });
 
@@ -254,7 +349,8 @@ public class SensorActivity extends AppCompatActivity implements AsyncResponse, 
 
                 String[] stringValues = getStringValue(day, month);
 
-                fromDate = year + "-" + stringValues[1] + "-" + stringValues[0] + " 00:00:00.000Z";
+                fromDate = year + "-" + stringValues[1] + "-" + stringValues[0] + "T00:00:00.000Z";
+                Log.v("DATE", fromDate);
             }
         };
 
@@ -270,7 +366,7 @@ public class SensorActivity extends AppCompatActivity implements AsyncResponse, 
 
                 String[] stringValues = getStringValue(day, month);
 
-                toDate = year + "-" + stringValues[1] + "-" + stringValues[0] + " 00:00:00.000Z";
+                toDate = year + "-" + stringValues[1] + "-" + stringValues[0] + "T23:59:59.999Z";
             }
         };
 
@@ -284,4 +380,7 @@ public class SensorActivity extends AppCompatActivity implements AsyncResponse, 
 
     @Override
     public void processFinish(String result) {}
+
+    @Override
+    public void processFinish(JSONArray json) {}
 }

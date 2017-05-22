@@ -8,7 +8,8 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="com.example.alex.internationalproject.SensorActivity">
+    tools:context="com.example.alex.internationalproject.SensorActivity"
+    android:background="@color/green">
 
     <TextView
         android:layout_width="wrap_content"
@@ -44,12 +45,14 @@
 
     <Button
         android:text="Get average temperature"
-        android:layout_width="wrap_content"
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_below="@+id/endDateTextView"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="14dp"
-        android:id="@+id/averageTempButton" />
+        android:id="@+id/averageTempButton"
+        android:textColor="@color/white"
+        android:background="@drawable/button_border_green"/>
 
     <Button
         android:text="Log out"
@@ -58,6 +61,8 @@
         android:layout_alignParentTop="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:id="@+id/logOutButton" />
+        android:id="@+id/logOutButton"
+        android:textColor="@color/white"
+        android:background="@drawable/button_border_green"/>
 
 </RelativeLayout>

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.AsyncTask;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.net.URL;
 
@@ -11,7 +12,7 @@ import java.net.URL;
  * Created by Alex on 4-5-2017.
  */
 
-public class RetrieveAverageTemperatureTask extends AsyncTask<URL, Void, JSONArray> {
+public class RetrieveAverageTemperatureTask extends AsyncTask<URL, Void, JSONObject> {
     public AsyncResponse delegate = null;
 
     private String mFromDate;
@@ -29,13 +30,13 @@ public class RetrieveAverageTemperatureTask extends AsyncTask<URL, Void, JSONArr
     protected void onPreExecute() { super.onPreExecute();}
 
     @Override
-    protected JSONArray doInBackground(URL... urls) {
+    protected JSONObject doInBackground(URL... urls) {
         getAverageTemperature(urls[0], "", "");
-        return new JSONArray();
+        return new JSONObject();
     }
 
     @Override
-    protected void onPostExecute(JSONArray json) {delegate.processFinish(json);}
+    protected void onPostExecute(JSONObject json) {delegate.processFinish(json);}
 
     private JSONArray getAverageTemperature(URL url, String fromDate, String toDate) {
       return new JSONArray();
