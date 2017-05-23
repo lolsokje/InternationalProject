@@ -65,4 +65,33 @@
         android:textColor="@color/white"
         android:background="@drawable/button_border_green"/>
 
+    <Button
+        android:text="Add device"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:id="@+id/addDeviceButton"
+        android:textColor="@color/white"
+        android:background="@drawable/button_border_green"/>
+
+    <Spinner
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/logOutButton"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="12dp"
+        android:id="@+id/deviceSpinner" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/babyNameTextView"
+        android:layout_below="@+id/deviceSpinner"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="42dp"
+        android:textColor="@color/white"
+        android:textSize="20dp" />
+
 </RelativeLayout>

@@ -3,9 +3,9 @@ package com.example.alex.internationalproject;
 import android.content.Context;
 import android.os.AsyncTask;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -16,19 +16,22 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 /**
- * Created by Alex on 15-3-2017.
+ * Created by Alex on 22-5-2017.
  */
 
-public class RetrieveTemperatureTask extends AsyncTask<URL, Void, JSONArray> {
+public class AddDeviceTask extends AsyncTask<URL, Void,  JSONObject> {
     private Context mContext;
-    private String mToken;
-    private String mSerial;
     public AsyncResponse delegate = null;
 
-    public RetrieveTemperatureTask(Context context, String token, String serial) {
+    private String mName;
+    private String mDeviceId;
+    private String mToken;
+
+    public AddDeviceTask(Context context, String name, String deviceId, String token) {
         mContext = context;
+        mName = name;
+        mDeviceId = deviceId;
         mToken = token;
-        mSerial = serial;
     }
 
     @Override
@@ -37,11 +40,11 @@ public class RetrieveTemperatureTask extends AsyncTask<URL, Void, JSONArray> {
     }
 
     @Override
-    protected JSONArray doInBackground(URL... urls) {
-        JSONArray result = null;
+    protected JSONObject doInBackground(URL... urls) {
+        JSONObject result = null;
         try {
-            result = getSingleTemperature(urls[0]);
-        } catch (IOException e) {
+            result = addDevice(urls[0]);
+        } catch(IOException e) {
             e.printStackTrace();
         } catch (JSONException e) {
             e.printStackTrace();
@@ -51,12 +54,12 @@ public class RetrieveTemperatureTask extends AsyncTask<URL, Void, JSONArray> {
     }
 
     @Override
-    protected void onPostExecute(JSONArray json) {
-        delegate.processFinish(json);
+    protected void onPostExecute(JSONObject json) {
+        delegate.addDeviceFinish(json);
     }
 
-    private JSONArray getSingleTemperature(URL url) throws IOException, JSONException {
-        HttpURLConnection urlConnection;
+    private JSONObject addDevice(URL url) throws IOException, JSONException {
+        HttpURLConnection urlConnection = null;
         InputStream iStream;
 
         urlConnection = (HttpURLConnection) url.openConnection();
@@ -73,7 +76,8 @@ public class RetrieveTemperatureTask extends AsyncTask<URL, Void, JSONArray> {
         urlConnection.setDoInput(true);
 
         JSONObject jsonParams = new JSONObject();
-        jsonParams.put("Serial", mSerial);
+        jsonParams.put("Name", mName);
+        jsonParams.put("Serial", mDeviceId);
 
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(urlConnection.getOutputStream()));
         writer.write(jsonParams.toString());
@@ -99,7 +103,7 @@ public class RetrieveTemperatureTask extends AsyncTask<URL, Void, JSONArray> {
 
         jsonString = sb.toString();
 
-        JSONArray ja = new JSONArray(jsonString);
-        return ja;
+        JSONObject jo = new JSONObject(jsonString);
+        return jo;
     }
 }

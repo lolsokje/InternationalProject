@@ -8,9 +8,11 @@ import org.json.JSONObject;
  */
 
 public interface AsyncResponse {
-    void processFinish(JSONObject output);
+    void processFinish(JSONArray output);
 
     void processFinish(String result);
 
-    void processFinish(JSONArray output);
+    void addDeviceFinish(JSONObject json);
+
+    void getDeviceListFinish(JSONArray json);
 }
